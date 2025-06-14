@@ -1,0 +1,210 @@
+# 机场订阅
+proxy-providers:
+  山水云:
+    url: "https://su.xfjhchr.com:8888/api/v1/client/subscribe?token=35ed675d0e2e1ae13cb0366a03408258"
+    type: http
+    interval: 86400
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 30
+    proxy: DIRECT
+  GFWAirPort:
+    url: "https://www9th.ga-sub.baby/api/v1/client/subscribe?token=3d36b6d2b1d958987ee709354d9ebb94"
+    type: http
+    interval: 86400
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 30
+    proxy: DIRECT
+    override:
+      skip-cert-verify: true
+# 全局配置 
+port: 7890
+socks-port: 7891
+redir-port: 7892
+mixed-port: 7893
+tproxy-port: 7894
+allow-lan: true
+bind-address: "*"
+ipv6: false
+unified-delay: true
+tcp-concurrent: true
+log-level: warning
+find-process-mode: 'off'
+# interface-name: en0
+global-client-fingerprint: chrome
+keep-alive-idle: 600
+keep-alive-interval: 15
+disable-keep-alive: false
+profile:
+  store-selected: true
+  store-fake-ip: true
+# 控制面板
+external-controller: 0.0.0.0:9090
+secret: ""
+external-ui: "/etc/nikki/run/ui"
+external-ui-name: zashboard
+external-ui-url: "https://github.com/Zephyruso/zashboard/archive/refs/heads/gh-pages.zip"
+# 嗅探
+sniffer:
+  enable: true
+  sniff:
+    HTTP:
+      ports: [80, 8080-8880]
+      override-destination: true
+    TLS:
+      ports: [443, 8443]
+    QUIC:
+      ports: [443, 8443]
+  force-domain:
+    - "+.v2ex.com"
+  skip-domain:
+    - "+.baidu.com"
+# 入站  
+tun:
+  enable: true
+  # system/gvisor/mixed
+  stack: mixed
+  dns-hijack: ["any:53", "tcp://any:53"]
+  auto-route: true
+  auto-redirect: true
+  auto-detect-interface: true
+# DNS模块
+dns:
+  enable: true
+  prefer-h3: true
+  listen: 0.0.0.0:1053
+  ipv6: false
+  respect-rules: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 28.0.0.1/8
+  fake-ip-filter-mode: blacklist
+  fake-ip-filter:
+    - "rule-set:private_domain,cn_domain"
+    - "+.msftconnecttest.com"
+    - "+.msftncsi.com"
+    - "time.*.com"
+  nameserver:  # namesever尽量用运营商提供的DNS
+    - 223.5.5.5
+    - 119.29.29.29
+  proxy-server-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  nameserver-policy:
+    "rule-set:amemv_com":
+      - 223.5.5.5
+      - 119.29.29.29
+    "rule-set:google_domain,category-ai-!cn_domain,github_domain,geolocation-!cn,gfw_domain":
+      - 1.1.1.1
+      - 8.8.8.8
+    "rule-set:category-ads-all_domain,bytedance@ads_domain,category-ai-!cn@ads_domain,AdBlock_Rule_For_Clash": rcode://success
+    "MATCH":
+      - 1.1.1.1
+      - 8.8.8.8
+# 出站策略
+pr: &pr {type: url-test, lazy: false, tolerance: 1, proxies: [🇭🇰 香港节点, 🇹🇼 台湾节点, 🇯🇵 日本节点, 🇰🇷 韩国节点, 🇸🇬 新加坡节点, 🇺🇲 美国节点]}
+pr2: &pr2 {type: url-test, include-all: true, lazy: false, tolerance: 1}
+proxy-groups:
+  - {name: 🇭🇰 香港节点, !!merge <<: *pr2, filter: "港|HK|(?i)Hong"}
+  - {name: 🇹🇼 台湾节点, !!merge <<: *pr2, filter: "台|TW|(?i)Taiwan"}
+  - {name: 🇯🇵 日本节点, !!merge <<: *pr2, filter: "日|JP|(?i)Japan|Tokyo"}
+  - {name: 🇰🇷 韩国节点, !!merge <<: *pr2, filter: "韩|KR|(?i)Korea|Incheon"}
+  - {name: 🇸🇬 新加坡节点, !!merge <<: *pr2, filter: "新|狮|SG|(?i)Singapore"}
+  - {name: 🇺🇲 美国节点, !!merge <<: *pr2, filter: "美|US|(?i)States|America|California"}
+  - {name: ♻️ 自动选择, !!merge <<: *pr2}
+  - {name: 🎵 TikTok, type: url-test, lazy: false, tolerance: 1, proxies: [🇹🇼 台湾节点, 🇯🇵 日本节点, 🇰🇷 韩国节点, 🇸🇬 新加坡节点, 🇺🇲 美国节点]}
+  - {name: 🎥 NETFLIX, !!merge <<: *pr}
+  - {name: 📹 Disney+, !!merge <<: *pr}
+# 规则匹配
+rules:
+  - RULE-SET,www_youtube_com,🇺🇲 美国节点 # 用于指定油管(和谷歌搜索等服务)的国家/地区
+  - RULE-SET,youtube_domain,♻️ 自动选择
+  - RULE-SET,google-play_domain,🇭🇰 香港节点
+  - RULE-SET,category-ads-all_domain,REJECT-DROP
+  - RULE-SET,google_domain,♻️ 自动选择
+  - RULE-SET,amemv_com,🇭🇰 香港节点 # 用于指定抖音省(市/区)
+  - RULE-SET,bytedance@ads_domain,REJECT-DROP
+  - RULE-SET,bytedance@!cn_domain,🎵 TikTok
+  - RULE-SET,bytedance_domain,DIRECT
+  - RULE-SET,github_domain,♻️ 自动选择
+  - RULE-SET,category-ai-!cn@ads_domain,REJECT-DROP
+  - RULE-SET,category-ai-!cn_domain,♻️ 自动选择
+  - RULE-SET,category-ai-cn_domain,DIRECT
+  - RULE-SET,onedrive_domain,DIRECT
+  - RULE-SET,microsoft_domain,♻️ 自动选择
+  - RULE-SET,apple-cn_domain,DIRECT
+  - RULE-SET,apple@cn_domain,DIRECT
+  - RULE-SET,apple_domain,♻️ 自动选择
+  - RULE-SET,netflix_domain,🎥 NETFLIX
+  - RULE-SET,disney_domain,📹 Disney+
+  - RULE-SET,telegram_domain,♻️ 自动选择
+  - RULE-SET,speedtest_domain,♻️ 自动选择
+  - RULE-SET,paypal_domain,♻️ 自动选择
+  - RULE-SET,test-ipv6_domain,DIRECT
+  - RULE-SET,reddit_domain,♻️ 自动选择
+  - RULE-SET,pornhub_domain,♻️ 自动选择
+  - RULE-SET,suffix_tw,🇹🇼 台湾节点
+  - RULE-SET,suffix_jp,🇯🇵 日本节点
+  - RULE-SET,qnap_com,DIRECT
+  - RULE-SET,softonic_cn,♻️ 自动选择
+  - RULE-SET,AdBlock_Rule_For_Clash,REJECT-DROP
+  - RULE-SET,gfw_domain,♻️ 自动选择
+  - RULE-SET,geolocation-!cn,♻️ 自动选择
+  - RULE-SET,cn_domain,DIRECT
+  - RULE-SET,private_domain,DIRECT
+  - RULE-SET,google_ip,♻️ 自动选择,no-resolve
+  - RULE-SET,netflix_ip,🎥 NETFLIX,no-resolve
+  - RULE-SET,telegram_ip,♻️ 自动选择,no-resolve
+  - RULE-SET,cn_ip,DIRECT
+  - RULE-SET,private_ip,DIRECT
+  - MATCH,♻️ 自动选择
+# 规则集
+rule-anchor:
+  ip: &ip {type: http, interval: 86400, behavior: ipcidr, format: mrs}
+  domain: &domain {type: http, interval: 86400, behavior: domain, format: mrs}
+  yaml: &yaml {type: http, interval: 86400, behavior: domain, format: yaml}
+rule-providers:
+# DOMAIN
+  category-ads-all_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/refs/heads/meta/geo/geosite/category-ads-all.mrs"}
+  AdBlock_Rule_For_Clash: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/REIJI007/AdBlock_Rule_For_Clash/main/adblock_reject.mrs"}
+  www_youtube_com: { !!merge <<: *yaml, url: "https://raw.githubusercontent.com/seaspirit/ruleset/refs/heads/main/www_youtube_com.yaml"}
+  youtube_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/youtube.mrs"} 
+  google-play_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google-play.mrs"}
+  google_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.mrs"}
+  category-ai-!cn@ads_domain: { !!merge <<: *domain, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/category-ai-!cn@ads.mrs" }
+  category-ai-!cn_domain: { !!merge <<: *domain, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/category-ai-!cn.mrs" }
+  category-ai-cn_domain: { !!merge <<: *domain, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/category-ai-cn.mrs" }
+  amemv_com: { !!merge <<: *yaml, url: "https://raw.githubusercontent.com/seaspirit/ruleset/refs/heads/main/amemv_com.yaml"}
+  bytedance@ads_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/bytedance@ads.mrs"}
+  bytedance@!cn_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/bytedance@!cn.mrs"}
+  bytedance_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/bytedance.mrs"}
+  github_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/github.mrs"}
+  telegram_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.mrs"}
+  netflix_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/netflix.mrs"}
+  disney_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/disney.mrs"}
+  paypal_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/paypal.mrs"}
+  onedrive_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/onedrive.mrs"}
+  microsoft_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/microsoft.mrs"}
+  apple-cn_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/apple-cn.mrs"}
+  apple@cn_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/apple@cn.mrs"}
+  apple_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/apple.mrs"}
+  speedtest_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/ookla-speedtest.mrs"}
+  test-ipv6_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/test-ipv6.mrs"}
+  reddit_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/reddit.mrs"}
+  pornhub_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/pornhub.mrs"}
+  suffix_tw: { !!merge <<: *yaml, url: "https://raw.githubusercontent.com/seaspirit/ruleset/refs/heads/main/suffix_tw.yaml"}
+  suffix_jp: { !!merge <<: *yaml, url: "https://raw.githubusercontent.com/seaspirit/ruleset/refs/heads/main/suffix_jp.yaml"}
+  qnap_com: { !!merge <<: *yaml, url: "https://raw.githubusercontent.com/seaspirit/ruleset/refs/heads/main/qnap_com.yaml"}
+  softonic_cn: { !!merge <<: *yaml, url: "https://raw.githubusercontent.com/seaspirit/ruleset/refs/heads/main/softonic_cn.yaml"}
+  gfw_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/gfw.mrs"}
+  geolocation-!cn: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.mrs"}
+  cn_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.mrs"} 
+  private_domain: { !!merge <<: *domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.mrs"}
+# IP
+  google_ip: { !!merge <<: *ip, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/google.mrs"}
+  telegram_ip: { !!merge <<: *ip, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.mrs"}
+  netflix_ip: { !!merge <<: *ip, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/netflix.mrs"}
+  cn_ip: { !!merge <<: *ip, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.mrs"}
+  private_ip: { !!merge <<: *ip, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/private.mrs"}
