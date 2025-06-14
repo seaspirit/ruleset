@@ -1,3 +1,5 @@
 payload:
     - www.youtube.com
     - www.googleapis.com
+    - maps.googleapis.com
+    - play.googleapis.com
