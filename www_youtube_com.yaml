@@ -3,3 +3,4 @@ payload:
     - www.googleapis.com
     - maps.googleapis.com
     - play.googleapis.com
+    - geolocation.googleapis.com
